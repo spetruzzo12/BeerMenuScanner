@@ -9,11 +9,11 @@ class App extends React.Component
   fileSelectedHandler = async (e) =>
   {
     this.state.selectedImage = e.target.files[0];
-    console.log(this.state.selectedImage);
+    console.log(this.state.selectedImage.name);
 
     this.state.base64 = await this.readFile(this.state.selectedImage);
     this.state.base64 = this.state.base64.replace("data:", "").replace(/^.+,/, "");
-    console.log(this.state.base64);
+    // console.log(this.state.base64);
   }
 
   /* To convert the file to Base64 and returns a promise */
@@ -37,7 +37,7 @@ class App extends React.Component
     });
   };
 
-  /* On "Upload" click, API Gateway -> Lambda -> S2 */
+  /* On "Upload" click, API Gateway -> Lambda -> S3 */
   uploadImage = () =>
   {
     /* Send to Lambda function from here */
@@ -54,7 +54,28 @@ class App extends React.Component
     /* Execute the POST */
     fetch("https://tg0hv338l5.execute-api.us-east-1.amazonaws.com/BeerMenuScanner", requestOptions)
     .then(response => response.text())
-    .then(result => alert(JSON.parse(result).statusCode + " | " + JSON.parse(result).body))
+    // .then(result => alert(JSON.parse(result).statusCode + " | " + JSON.parse(result).body))
+    .catch(error => console.log('error', error));
+  }
+
+  /* Get the Beer Results if they exist */
+  getBeerResults = () =>
+  {
+    /* Call API to check for results if they exist */
+    var myHeaders = new Headers();
+    myHeaders.append("Content-Type", "application/json");
+    var raw = JSON.stringify({"Key": this.state.selectedImage.name.slice(0, this.state.selectedImage.name.indexOf(".")) + ".json"});
+    var requestOptions = {
+      method: 'POST',
+      headers: myHeaders,
+      body: raw,
+      redirect: 'follow'
+    };
+    /* Execute the POST */
+    fetch("https://17yiu3g03f.execute-api.us-east-1.amazonaws.com/BeerMenuGet", requestOptions)
+    .then(response => response.text())
+    // .then(result => alert(JSON.parse(result).statusCode + " | " + JSON.parse(result).body))
+    .then(result => console.log(JSON.parse(result).body))
     .catch(error => console.log('error', error));
   }
 
@@ -66,7 +87,8 @@ class App extends React.Component
         <div style={{textAlign: "center"}}>
           <Heading level={1}>BEER MENU SCANNER</Heading>
           <input type="file" onChange={this.fileSelectedHandler}/>
-          <Button onClick={this.uploadImage}>Upload</Button>
+          <Button onClick={this.uploadImage}>Upload</Button><br></br>
+          <Button onClick={this.getBeerResults}>Get Results!</Button>
         </div> 
       </div>
     );
