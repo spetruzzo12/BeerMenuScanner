@@ -24,7 +24,6 @@ class App extends React.Component
 
     this.base64 = await this.readFile(this.selectedImage);
     this.base64 = this.base64.replace("data:", "").replace(/^.+,/, "");
-    // console.log(this.base64);
   }
 
   /* To convert the file to Base64 and returns a promise */
@@ -49,7 +48,6 @@ class App extends React.Component
   };
 
   /* On "Upload" click, API Gateway -> Lambda -> S3 */
-  /* Using a fetch and prmoise to send data */
   uploadImage = () =>
   {
     if (!this.selectedImage)
@@ -60,7 +58,6 @@ class App extends React.Component
     this.setState({ showResults: false, noImageError: false });
 
     /* Send to Lambda function from here */
-    /* Format our REST POST */
     var myHeaders = new Headers();
     myHeaders.append("Content-Type", "application/json");
     var raw = JSON.stringify({"ImageName": this.selectedImage.name, "Base64": this.base64});
@@ -70,22 +67,24 @@ class App extends React.Component
       body: raw,
       redirect: 'follow'
     };
-    /* Execute the POST */
     fetch("https://tg0hv338l5.execute-api.us-east-1.amazonaws.com/BeerMenuScanner", requestOptions)
     .then(response => response.text())
-    // .then(result => alert(JSON.parse(result).statusCode + " | " + JSON.parse(result).body))
     .catch(error => console.log('error', error));
   }
 
-  /* Get the Beer Results if they exist */
-  /* Not using a fetch and prmoise as we want this to be async and store the date */
+  // Manual delay to delete then wait before requesting data again
+  // delay(time) 
+  // {
+  //   return new Promise(resolve => setTimeout(resolve, time));
+  // }
+
   async getBeerResults()
   {
     if (!this.selectedImage)
-    {
-      this.setState({ noImageError: true });
-      return;
-    }
+      {
+        this.setState({ noImageError: true });
+        return;
+      }
     this.setState({ loading: true, showResults: false, noImageError: false });
 
     /* Call API to check for results if they exist */
@@ -98,11 +97,9 @@ class App extends React.Component
       body: raw,
       redirect: 'follow'
     };
-    /* Execute the POST */
     const response = await fetch("https://17yiu3g03f.execute-api.us-east-1.amazonaws.com/BeerMenuGet", requestOptions)
     const data = await response.json();
     this.beerResults = String(data.body).replace(/["]/g, "");
-    // console.log(this.beerResults);
 
     /* Parse the dirty dirty data...wish it was in JSON */
     var beginIdx = 0; var endIdx = 0;
@@ -127,23 +124,47 @@ class App extends React.Component
         {
           this.infoDict[i][j] = this.infoDict[i][j].slice(2);
           if (this.infoDictMap[i] == "ABV")
-            this.infoDict[i][j] = this.infoDict[i][j] + "%";
+          this.infoDict[i][j] = this.infoDict[i][j] + "%";
+          if (this.infoDictMap[i] == "correct_ratio")
+          this.infoDict[i][j] = this.infoDict[i][j].slice(0, this.infoDict[i][j].indexOf('.')) + '%';
         }
 
         // Set input string to remaining string to be analyzed
         this.beerResults = this.beerResults.slice(endIdx);
-        this.setState({ loading: false, showResults: true });
       }
       console.log(this.infoDict);
+      this.setState({ loading: false, showResults: true });
     }
-    else
-      console.log("No results to display yet.");
   }
+
+  // Trying to add polling to request the results every 10 seconds with a 60 second timeout...
+  // async getBeerResultsPoll()
+  // {
+  //   var dateFunc = new Date();
+  //   var timeout = false;
+  //   var runTime = 60000; var interval = 10000; var count = 0; var diff = 0; var presentTime = 0;
+  //   var startTime = dateFunc.getTime();
+
+  //   while (!timeout)
+  //   {
+  //     presentTime = dateFunc.getTime();
+  //     diff = presentTime - startTime;
+  //     timeout = diff >= runTime;
+  //     if ((interval * count) >= presentTime || count == 0)
+  //     {
+  //       console.log("Trying to fetch results");
+  //       this.getBeerResults();
+  //       count++;
+  //     }
+  //     this.delay(1000);
+  //   }
+  // }
 
   /* Handles the get beer results click, needed to have an async function */
   handleBeerResultsClick = (e) =>
   {
     e.preventDefault();
+    // this.getBeerResultsPoll();
     this.getBeerResults();
   }
 
@@ -182,6 +203,7 @@ class App extends React.Component
                     <th>ABV</th>
                     <th>Rating</th>
                     <th>Style</th>
+                    <th>Match %</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -191,6 +213,7 @@ class App extends React.Component
                     <td>{this.infoDict[5][0]}</td>
                     <td>{this.infoDict[7][0]}</td>
                     <td>{this.infoDict[4][0]}</td>
+                    <td>{this.infoDict[1][0]}</td>
                   </tr>
                   <tr>
                     <td>{this.infoDict[3][1]}</td>
@@ -198,6 +221,7 @@ class App extends React.Component
                     <td>{this.infoDict[5][1]}</td>
                     <td>{this.infoDict[7][1]}</td>
                     <td>{this.infoDict[4][1]}</td>
+                    <td>{this.infoDict[1][1]}</td>
                   </tr>
                   <tr>
                     <td>{this.infoDict[3][2]}</td>
@@ -205,6 +229,7 @@ class App extends React.Component
                     <td>{this.infoDict[5][2]}</td>
                     <td>{this.infoDict[7][2]}</td>
                     <td>{this.infoDict[4][2]}</td>
+                    <td>{this.infoDict[1][2]}</td>
                   </tr>
                   <tr>
                     <td>{this.infoDict[3][3]}</td>
@@ -212,6 +237,7 @@ class App extends React.Component
                     <td>{this.infoDict[5][3]}</td>
                     <td>{this.infoDict[7][3]}</td>
                     <td>{this.infoDict[4][3]}</td>
+                    <td>{this.infoDict[1][3]}</td>
                   </tr>
                   <tr>
                     <td>{this.infoDict[3][4]}</td>
@@ -219,6 +245,7 @@ class App extends React.Component
                     <td>{this.infoDict[5][4]}</td>
                     <td>{this.infoDict[7][4]}</td>
                     <td>{this.infoDict[4][4]}</td>
+                    <td>{this.infoDict[1][4]}</td>
                   </tr>
                 </tbody>
               </Table>
